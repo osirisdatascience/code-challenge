@@ -1,6 +1,7 @@
 from airflow import DAG
 from airflow.utils.dates import days_ago
 from meltano.providers.airflow import MeltanoOperator
+from airflow.operators.empty import EmptyOperator
 
 default_args = {
     "owner": "airflow",
@@ -15,20 +16,21 @@ with DAG(
     start_date=days_ago(1),
     catchup=False,
 ) as dag:
-
+    
+    start_task = EmptyOperator(task_id="start")
     
     extract_postgres = MeltanoOperator(
         task_id="extract_postgres",
-        meltano_command="run tap-postgres target-parquet-postgres",
+        meltano_command="run postgres_to_parquet",
         env={"EXECUTION_DATE": "{{ ds }}"},  
     )
-
     
     extract_csv = MeltanoOperator(
         task_id="extract_csv",
-        meltano_command="run tap-csv target-parquet-csv",
+        meltano_command="run csv_to_parquet",
         env={"EXECUTION_DATE": "{{ ds }}"},  
     )
 
+    end_task = EmptyOperator(task_id="end")
     
-    [extract_postgres >> extract_csv]
+    start_task >> [extract_postgres >> extract_csv] >> end_task

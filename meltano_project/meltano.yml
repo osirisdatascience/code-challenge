@@ -5,29 +5,34 @@ plugins:
       namespace: tap_postgres
       executable: tap-postgres
       config:
-        host: "localhost"     
+        host: "db"     
         port: 5432            
         user: "usuario"        
         password: "senha"  
         dbname: "northwind"          
         schema: "public"              
         select:
-          - "*"                      
+          - "*" 
+        filters:
+          order_date: "{env:EXECUTION_DATE}"                     
     - name: tap-csv
       namespace: tap_csv
       executable: tap-csv
       config:
         files:
-          - "./data/raw/csv/order_details.csv" 
+          - "./data/source/order_details.csv" 
         delimiter: ","
         encoding: "utf-8"
+        filters:
+          execution_date: "{env:EXECUTION_DATE}"
+
     - name: tap-parquet
       namespace: tap_parquet
       executable: tap-parquet
       config:
         file_paths:
-          - "./data/processed/postgres/orders/{execution_date}/orders_{execution_date}.parquet"
-          - "./data/processed/csv/{execution_date}/order_details_{execution_date}.parquet"
+          - "./data/processed/postgres/orders/{execution_date}/orders.parquet"
+          - "./data/processed/csv/{execution_date}/order_details.parquet"
 
   loaders:
     - name: target-parquet-postgres
@@ -35,18 +40,18 @@ plugins:
       executable: target-parquet
       config:
         destination_path: "./data/processed/postgres/{table}/{execution_date}" 
-        file_name: "{table}_{execution_date}.parquet"
+        file_name: "{table}.parquet"
     - name: target-parquet-csv
       namespace: target_parquet
       executable: target-parquet
       config:
         destination_path: "./data/processed/csv/{execution_date}"
-        file_name: "order_details_{execution_date}.parquet"
+        file_name: "order_details.parquet"
     - name: target-postgres-destination
       namespace: target_postgres
       executable: target-postgres
       config:
-        host: "postgres-destination"
+        host: "db"
         port: 5432
         user: "usuario"
         password: "senha"
