@@ -1,14 +1,41 @@
-version: '3'
+version: '3.8'
 
 services:
   db:
     image: postgres:12
+    container_name: postgres
     environment:
-      POSTGRES_DB: northwind
-      POSTGRES_USER: northwind_user
-      POSTGRES_PASSWORD: thewindisblowing
+      POSTGRES_USER: usuario
+      POSTGRES_PASSWORD: senha
     volumes:
-      - ./dbdata:/var/lib/postgresql/data
-      - ./data/northwind.sql:/docker-entrypoint-initdb.d/northwind.sql
+      - ./data/source/northwind.sql:/docker-entrypoint-initdb.d/northwind.sql
     ports:
-      - 5432:5432
+      - "5432:5432"
+
+  airflow:
+    image: apache/airflow:2.7.1
+    container_name: airflow
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    command: >
+      bash -c "airflow db upgrade &&
+               airflow users create --username airflow --password airflow --firstname Admin --lastname User --role Admin --email admin@example.com &&
+               airflow webserver"
+ 
+  meltano:
+    image: meltano/meltano:2.20.0
+    container_name: meltano
+    environment:
+      MELTANO_PROJECT_ROOT: /project
+    volumes:
+      - ./meltano_project:/project
+    command: ["meltano", "ui"]
+    ports:
+      - "5000:5000"

@@ -1,0 +1,72 @@
+version: 1
+plugins:
+  extractors:
+    - name: tap-postgres
+      namespace: tap_postgres
+      executable: tap-postgres
+      config:
+        host: "db"     
+        port: 5432            
+        user: "usuario"        
+        password: "senha"  
+        dbname: "northwind"          
+        schema: "public"              
+        select:
+          - "*" 
+        filters:
+          order_date: "{env:EXECUTION_DATE}"                     
+    - name: tap-csv
+      namespace: tap_csv
+      executable: tap-csv
+      config:
+        files:
+          - "./data/source/order_details.csv" 
+        delimiter: ","
+        encoding: "utf-8"
+        filters:
+          execution_date: "{env:EXECUTION_DATE}"
+
+    - name: tap-parquet
+      namespace: tap_parquet
+      executable: tap-parquet
+      config:
+        file_paths:
+          - "./data/processed/postgres/{execution_date}/orders/orders.parquet"
+          - "./data/processed/csv/{execution_date}/order_details.parquet"
+ 
+  loaders:
+    - name: target-parquet-postgres
+      namespace: target_parquet
+      executable: target-parquet
+      config:
+        destination_path: "./data/processed/postgres/{execution_date}/{table}" 
+        file_name: "{table}.parquet"
+    - name: target-parquet-csv
+      namespace: target_parquet
+      executable: target-parquet
+      config:
+        destination_path: "./data/processed/csv/{execution_date}"
+        file_name: "order_details.parquet"
+    - name: target-postgres-destination
+      namespace: target_postgres
+      executable: target-postgres
+      config:
+        host: "db"
+        port: 5432
+        user: "usuario"
+        password: "senha"
+        dbname: "destination"
+        schema: "processed"
+
+mappings:
+  - name: postgres_to_parquet
+    extractor: tap-postgres
+    loader: target-parquet-postgres
+
+  - name: csv_to_parquet
+    extractor: tap-csv
+    loader: target-parquet-csv
+
+  - name: parquet_to_postgres
+    extractor: tap-parquet
+    loader: target-postgres-destination
