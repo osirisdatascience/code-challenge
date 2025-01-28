@@ -31,15 +31,15 @@ plugins:
       executable: tap-parquet
       config:
         file_paths:
-          - "./data/processed/postgres/orders/{execution_date}/orders.parquet"
+          - "./data/processed/postgres/{execution_date}/orders/orders.parquet"
           - "./data/processed/csv/{execution_date}/order_details.parquet"
-
+ 
   loaders:
     - name: target-parquet-postgres
       namespace: target_parquet
       executable: target-parquet
       config:
-        destination_path: "./data/processed/postgres/{table}/{execution_date}" 
+        destination_path: "./data/processed/postgres/{execution_date}/{table}" 
         file_name: "{table}.parquet"
     - name: target-parquet-csv
       namespace: target_parquet

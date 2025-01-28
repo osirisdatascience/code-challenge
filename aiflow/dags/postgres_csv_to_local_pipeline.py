@@ -5,6 +5,7 @@ from airflow.operators.empty import EmptyOperator
 
 default_args = {
     "owner": "airflow",
+    "depends_on_past": False,
     "retries": 1,
 }
 
@@ -22,13 +23,17 @@ with DAG(
     extract_postgres = MeltanoOperator(
         task_id="extract_postgres",
         meltano_command="run postgres_to_parquet",
-        env={"EXECUTION_DATE": "{{ ds }}"},  
+        env={"EXECUTION_DATE": "{{ execution_date.strftime('%d-%m-%Y') }}"},  
+        provide_context=True,
+        log_output=True,
     )
     
     extract_csv = MeltanoOperator(
         task_id="extract_csv",
         meltano_command="run csv_to_parquet",
-        env={"EXECUTION_DATE": "{{ ds }}"},  
+        env={"EXECUTION_DATE": "{{ execution_date.strftime('%d-%m-%Y') }}"},  
+        provide_context=True,  
+        log_output=True,
     )
 
     end_task = EmptyOperator(task_id="end")
